@@ -39,12 +39,14 @@ public class SFFullscreenImageDetailViewController: UIViewController, UIScrollVi
     var tintColor = UIColor.black
     var retainHolder: SFFullscreenImageDetailViewController!
     let animator = UIDynamicAnimator()
-    
+    var tapRecognizer:UITapGestureRecognizer?
+
     let imageView: UIImageView = {
         let view = UIImageView()
         view.clipsToBounds = true
         view.isUserInteractionEnabled = true
-        
+        view.autoresizingMask = [UIViewAutoresizing.flexibleLeftMargin, UIViewAutoresizing.flexibleRightMargin]
+
         return view
     }()
     
@@ -64,6 +66,10 @@ public class SFFullscreenImageDetailViewController: UIViewController, UIScrollVi
             calculationView = superview
         }
         
+        if visibleRect.origin.x.isInfinite || visibleRect.origin.y.isInfinite {
+            visibleRect = CGRect()
+        }
+
         self.originFrame = visibleRect
         self.imageView.contentMode = view.contentMode
         self.image = view.image!.copy() as! UIImage
@@ -85,6 +91,9 @@ public class SFFullscreenImageDetailViewController: UIViewController, UIScrollVi
         let view = UIView(frame: window.bounds)
         window.addSubview(view)
         
+        UIApplication.shared.keyWindow?.rootViewController?.addChildViewController(self)
+        UIDevice.current.beginGeneratingDeviceOrientationNotifications()
+
         self.view = view
     }
     
@@ -101,9 +110,9 @@ public class SFFullscreenImageDetailViewController: UIViewController, UIScrollVi
         let recognizer = UIPanGestureRecognizer(target: self, action: #selector(self.panGestureCallback(_:)))
         self.imageView.addGestureRecognizer(recognizer)
         
-        let tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(self.doubleTap(_:)))
-        tapRecognizer.numberOfTapsRequired = 2
-        self.imageView.addGestureRecognizer(tapRecognizer)
+        self.tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(self.zoomTap(_:)))
+        tapRecognizer?.numberOfTapsRequired = 2
+        self.imageView.addGestureRecognizer(tapRecognizer!)
     }
     
     public func presentInCurrentKeyWindow() {
@@ -112,12 +121,17 @@ public class SFFullscreenImageDetailViewController: UIViewController, UIScrollVi
         self.retainHolder = self
         self.originalView.isHidden = true
         
-        self.imageView.frame = self.originFrame.offsetBy(dx: -self.scrollView.frame.origin.x, dy: -self.scrollView.frame.origin.y)
+        let height = self.scrollView.bounds.width/self.image.size.width * self.image.size.height
+        let newFrame = CGRect(x: self.originFrame.origin.x, y: self.originFrame.origin.y, width: self.scrollView.bounds.width, height: height)
+
+        self.imageView.frame = self.originalView.convert(self.originalView.frame, to: self.view)
         self.imageView.image = self.image
         self.scrollView.addSubview(imageView)
+        self.scrollView.contentSize = self.imageView.frame.size
         
         UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.85, initialSpringVelocity: 5, options: .curveEaseOut, animations: {
-            self.imageView.frame = self.scrollView.bounds
+
+            self.imageView.frame = newFrame
             self.imageView.center = CGPoint(x: self.scrollView.bounds.midX, y: self.scrollView.bounds.midY)
             self.view.layer.backgroundColor = self.tintColor.cgColor
             self.imageView.layer.cornerRadius = self.imageCornerRadius
@@ -126,7 +140,7 @@ public class SFFullscreenImageDetailViewController: UIViewController, UIScrollVi
         }, completion: nil)
     }
     
-    func doubleTap(_ sender: UITapGestureRecognizer) {
+    func zoomTap(_ sender: UITapGestureRecognizer) {
         let location = sender.location(in: self.imageView)
         if self.imageView.point(inside: location, with: nil) {
             if self.scrollView.zoomScale == 1 {
@@ -188,7 +202,7 @@ public class SFFullscreenImageDetailViewController: UIViewController, UIScrollVi
                     instance!.frame = frame
                     instance!.center = movingCenter
                     
-                    if progress == 0.0 {
+                    if progress <= 0.0001 {
                         DispatchQueue.main.async {
                             weakSelf!.animator.removeAllBehaviors()
                             weakSelf!.cleanUpAndDismiss()
@@ -206,6 +220,7 @@ public class SFFullscreenImageDetailViewController: UIViewController, UIScrollVi
                 
                 UIView.animate(withDuration: 0.1, delay: 0, options: UIViewAnimationOptions(), animations: {
                     self.view.layer.backgroundColor = UIColor.clear.cgColor
+                    self.imageView.contentMode = self.originalView.contentMode
                     self.imageView.layer.cornerRadius = self.originalView.layer.cornerRadius
                     self.closeButton.alpha = 0
                 }, completion: nil)
@@ -230,6 +245,9 @@ public class SFFullscreenImageDetailViewController: UIViewController, UIScrollVi
         self.closeButton.removeFromSuperview()
         self.view.removeFromSuperview()
         self.retainHolder = nil
+        self.removeFromParentViewController()
+        UIDevice.current.endGeneratingDeviceOrientationNotifications()
+
     }
     
     func closeTapped(_ sender: UIButton) {
@@ -250,11 +268,24 @@ public class SFFullscreenImageDetailViewController: UIViewController, UIScrollVi
     public func viewForZooming(in scrollView: UIScrollView) -> UIView? {
         return scrollView.subviews.first
     }
-    
-    public func scrollViewDidScroll(_ scrollView: UIScrollView) {
+    public func scrollViewDidZoom(_ scrollView: UIScrollView) {
+        let offsetX = (scrollView.bounds.size.width > scrollView.contentSize.width) ? (scrollView.bounds.size.width - scrollView.contentSize.width) * 0.5 : 0.0
+        let offsetY = (scrollView.bounds.size.height > scrollView.contentSize.height) ? (scrollView.bounds.size.height - scrollView.contentSize.height) * 0.5 : 0.0
+        
+        self.imageView.center = CGPoint(x: scrollView.contentSize.width * 0.5 + offsetX, y: scrollView.contentSize.height * 0.5 + offsetY)
+        
+        
+        if self.scrollView.zoomScale == 1 {
+            self.tapRecognizer?.numberOfTapsRequired = 2
+        } else {
+            self.tapRecognizer?.numberOfTapsRequired = 1
+        }
         if self.closeButton.isHidden != (self.scrollView.zoomScale > 1) {
             self.closeButton.isHidden = !self.closeButton.isHidden
         }
+
+    }
+    public func scrollViewDidScroll(_ scrollView: UIScrollView) {
     }
     
     // MARK: NSCoding
@@ -265,4 +296,20 @@ public class SFFullscreenImageDetailViewController: UIViewController, UIScrollVi
         
         super.encode(with: aCoder)
     }
+    
+    // MARL - Rotation
+    public override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        
+        let offsetX = (scrollView.bounds.size.width > scrollView.contentSize.width) ? (scrollView.bounds.size.width - scrollView.contentSize.width) * 0.5 : 0.0
+        let offsetY = (scrollView.bounds.size.height > scrollView.contentSize.height) ? (scrollView.bounds.size.height - scrollView.contentSize.height) * 0.5 : 0.0
+        
+        // Will rotatie, so x = y, y = x
+        self.imageView.center = CGPoint(x: scrollView.contentSize.height * 0.5 + offsetY, y: scrollView.contentSize.width * 0.5 + offsetX)
+        
+        
+        if #available(iOS 8.0, *) {
+            super.viewWillTransition(to: size, with: coordinator)
+        }
+    }
+
 }
