@@ -10,10 +10,13 @@ import UIKit
 import Foundation
 import QuartzCore
 
-final class SFFullscreenImageDetailViewController: UIViewController, UIScrollViewDelegate {
+public class SFFullscreenImageDetailViewController: UIViewController, UIScrollViewDelegate {
     let image: UIImage
     let originFrame: CGRect
     var originalView: UIImageView!
+    public var imageCornerRadius:CGFloat = 5
+    public var targetRect:CGRect?
+    public var contentMode = UIViewContentMode.scaleAspectFit
     
     let scrollView: UIScrollView = {
         let view = UIScrollView()
@@ -46,7 +49,7 @@ final class SFFullscreenImageDetailViewController: UIViewController, UIScrollVie
     }()
     
     
-    init (imageView view: UIImageView) {
+    public init (imageView view: UIImageView) {
         self.originalView = view
         var calculationView: UIView = view
         var visibleRect = view.bounds
@@ -64,20 +67,20 @@ final class SFFullscreenImageDetailViewController: UIViewController, UIScrollVie
         self.originFrame = visibleRect
         self.imageView.contentMode = view.contentMode
         self.image = view.image!.copy() as! UIImage
-        
+
         super.init(nibName: nil, bundle: nil)
         
         self.closeButton.addTarget(self, action: #selector(self.closeTapped(_:)), for: .touchUpInside)
     }
     
-    required init?(coder aDecoder: NSCoder) {
+    required public init?(coder aDecoder: NSCoder) {
         self.image = aDecoder.decodeObject(forKey: "image") as! UIImage
         self.originFrame = aDecoder.decodeCGRect(forKey: "originFrame")
         
         super.init(coder: aDecoder)
     }
     
-    override func loadView() {
+    override public func loadView() {
         let window = UIApplication.shared.keyWindow!
         let view = UIView(frame: window.bounds)
         window.addSubview(view)
@@ -85,10 +88,10 @@ final class SFFullscreenImageDetailViewController: UIViewController, UIScrollVie
         self.view = view
     }
     
-    override func viewDidLoad() {
+    override public func viewDidLoad() {
         super.viewDidLoad()
         //Additional setup
-        self.scrollView.frame = CGRect(x: 15, y: 60, width: self.view.bounds.width - 30, height: self.view.bounds.height - 80)
+        self.scrollView.frame = targetRect ?? CGRect(x: 15, y: 60, width: self.view.bounds.width - 30, height: self.view.bounds.height - 80)
         self.scrollView.delegate = self
         self.view.addSubview(self.scrollView)
         
@@ -103,7 +106,7 @@ final class SFFullscreenImageDetailViewController: UIViewController, UIScrollVie
         self.imageView.addGestureRecognizer(tapRecognizer)
     }
     
-    func presentInCurrentKeyWindow() {
+    public func presentInCurrentKeyWindow() {
         self.view.layer.backgroundColor = UIColor.clear.cgColor
         
         self.retainHolder = self
@@ -117,7 +120,9 @@ final class SFFullscreenImageDetailViewController: UIViewController, UIScrollVie
             self.imageView.frame = self.scrollView.bounds
             self.imageView.center = CGPoint(x: self.scrollView.bounds.midX, y: self.scrollView.bounds.midY)
             self.view.layer.backgroundColor = self.tintColor.cgColor
-            self.imageView.layer.cornerRadius = 5
+            self.imageView.layer.cornerRadius = self.imageCornerRadius
+            
+            self.imageView.contentMode = self.contentMode
         }, completion: nil)
     }
     
@@ -242,12 +247,11 @@ final class SFFullscreenImageDetailViewController: UIViewController, UIScrollVie
     }
     
     // MARK: UIScrollViewDelegate
-    
-    func viewForZooming(in scrollView: UIScrollView) -> UIView? {
+    public func viewForZooming(in scrollView: UIScrollView) -> UIView? {
         return scrollView.subviews.first
     }
     
-    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+    public func scrollViewDidScroll(_ scrollView: UIScrollView) {
         if self.closeButton.isHidden != (self.scrollView.zoomScale > 1) {
             self.closeButton.isHidden = !self.closeButton.isHidden
         }
@@ -255,7 +259,7 @@ final class SFFullscreenImageDetailViewController: UIViewController, UIScrollVie
     
     // MARK: NSCoding
     
-    override func encode(with aCoder: NSCoder) {
+    override public func encode(with aCoder: NSCoder) {
         aCoder.encode(self.image, forKey: "image")
         aCoder.encode(self.originFrame, forKey: "originFrame")
         
