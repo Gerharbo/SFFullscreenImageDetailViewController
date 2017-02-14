@@ -104,7 +104,7 @@ public class SFFullscreenImageDetailViewController: UIViewController, UIScrollVi
         self.scrollView.delegate = self
         self.view.addSubview(self.scrollView)
         
-        self.closeButton.frame = CGRect(x: 15, y: 25, width: 20, height: 20)
+        self.closeButton.frame = CGRect(x: 0, y: 20, width: 50, height: 50)
         self.view.addSubview(self.closeButton)
         
         let recognizer = UIPanGestureRecognizer(target: self, action: #selector(self.panGestureCallback(_:)))
@@ -254,6 +254,7 @@ public class SFFullscreenImageDetailViewController: UIViewController, UIScrollVi
         let originalCenter = CGPoint(x: self.originFrame.midX - self.scrollView.frame.origin.x, y: self.originFrame.midY - self.scrollView.frame.origin.y)
         
         UIView.animate(withDuration: 0.15, delay: 0, options: .curveEaseOut, animations: {
+            self.imageView.contentMode = self.originalView.contentMode
             self.imageView.frame = self.originFrame
             self.imageView.center = originalCenter
             self.view.layer.backgroundColor = UIColor.clear.cgColor
