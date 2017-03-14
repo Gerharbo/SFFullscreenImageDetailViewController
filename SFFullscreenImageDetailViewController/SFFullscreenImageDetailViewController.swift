@@ -40,40 +40,33 @@ public class SFFullscreenImageDetailViewController: UIViewController, UIScrollVi
     var retainHolder: SFFullscreenImageDetailViewController!
     let animator = UIDynamicAnimator()
     var tapRecognizer:UITapGestureRecognizer?
-
+    
     let imageView: UIImageView = {
         let view = UIImageView()
         view.clipsToBounds = true
         view.isUserInteractionEnabled = true
         view.autoresizingMask = [UIViewAutoresizing.flexibleLeftMargin, UIViewAutoresizing.flexibleRightMargin]
-
+        
         return view
     }()
     
     
     public init (imageView view: UIImageView) {
         self.originalView = view
-        var calculationView: UIView = view
+        let superview:UIView = UIApplication.shared.keyWindow!
         var visibleRect = view.bounds
         
-        while true {
-            guard let superview = calculationView.superview else {
-                break
-            }
-            
-            visibleRect = superview.convert(visibleRect, from: calculationView)
-            visibleRect = visibleRect.intersection(superview.bounds)
-            calculationView = superview
-        }
+        visibleRect = superview.convert(visibleRect, from: view)
+        visibleRect = visibleRect.intersection(superview.bounds)
         
         if visibleRect.origin.x.isInfinite || visibleRect.origin.y.isInfinite {
             visibleRect = CGRect()
         }
-
+        
         self.originFrame = visibleRect
         self.imageView.contentMode = view.contentMode
         self.image = view.image!.copy() as! UIImage
-
+        
         super.init(nibName: nil, bundle: nil)
         
         self.closeButton.addTarget(self, action: #selector(self.closeTapped(_:)), for: .touchUpInside)
@@ -93,7 +86,7 @@ public class SFFullscreenImageDetailViewController: UIViewController, UIScrollVi
         
         UIApplication.shared.keyWindow?.rootViewController?.addChildViewController(self)
         UIDevice.current.beginGeneratingDeviceOrientationNotifications()
-
+        
         self.view = view
     }
     
@@ -123,14 +116,14 @@ public class SFFullscreenImageDetailViewController: UIViewController, UIScrollVi
         
         let height = self.scrollView.bounds.width/self.image.size.width * self.image.size.height
         let newFrame = CGRect(x: self.originFrame.origin.x, y: self.originFrame.origin.y, width: self.scrollView.bounds.width, height: height)
-
+        
         self.imageView.frame = self.originalView.convert(self.originalView.frame, to: self.view)
         self.imageView.image = self.image
         self.scrollView.addSubview(imageView)
         self.scrollView.contentSize = self.imageView.frame.size
         
         UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.85, initialSpringVelocity: 5, options: .curveEaseOut, animations: {
-
+            
             self.imageView.frame = newFrame
             self.imageView.center = CGPoint(x: self.scrollView.bounds.midX, y: self.scrollView.bounds.midY)
             self.view.layer.backgroundColor = self.tintColor.cgColor
@@ -190,7 +183,7 @@ public class SFFullscreenImageDetailViewController: UIViewController, UIScrollVi
                 weak var instance = view
                 weak var weakSelf = self
                 let snapBehaviour = UISnapBehavior(item: view, snapTo: originalCenter)
-                snapBehaviour.damping = 0.75
+                snapBehaviour.damping = 0.85
                 snapBehaviour.action = {
                     let movingCenter = instance!.center
                     let diffX = originalCenter.x - movingCenter.x, diffY = originalCenter.y - movingCenter.y
@@ -247,7 +240,7 @@ public class SFFullscreenImageDetailViewController: UIViewController, UIScrollVi
         self.retainHolder = nil
         self.removeFromParentViewController()
         UIDevice.current.endGeneratingDeviceOrientationNotifications()
-
+        
     }
     
     func closeTapped(_ sender: UIButton) {
@@ -284,7 +277,7 @@ public class SFFullscreenImageDetailViewController: UIViewController, UIScrollVi
         if self.closeButton.isHidden != (self.scrollView.zoomScale > 1) {
             self.closeButton.isHidden = !self.closeButton.isHidden
         }
-
+        
     }
     public func scrollViewDidScroll(_ scrollView: UIScrollView) {
     }
@@ -312,5 +305,5 @@ public class SFFullscreenImageDetailViewController: UIViewController, UIScrollVi
             super.viewWillTransition(to: size, with: coordinator)
         }
     }
-
+    
 }
