@@ -128,7 +128,9 @@ public class SFFullscreenImageDetailViewController: UIViewController, UIScrollVi
             self.imageView.center = CGPoint(x: self.scrollView.bounds.midX, y: self.scrollView.bounds.midY)
             self.view.layer.backgroundColor = self.tintColor.cgColor
             self.imageView.layer.cornerRadius = self.imageCornerRadius
-            
+            //line below -apply corner radius if source image has corner radius
+            self.imageView.layer.masksToBounds = self.imageCornerRadius != 0 ? true : false
+
             self.imageView.contentMode = self.contentMode
         }, completion: nil)
     }
