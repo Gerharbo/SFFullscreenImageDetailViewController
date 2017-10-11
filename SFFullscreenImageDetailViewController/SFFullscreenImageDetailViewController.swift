@@ -135,7 +135,7 @@ public class SFFullscreenImageDetailViewController: UIViewController, UIScrollVi
         }, completion: nil)
     }
     
-    func zoomTap(_ sender: UITapGestureRecognizer) {
+    @objc func zoomTap(_ sender: UITapGestureRecognizer) {
         let location = sender.location(in: self.imageView)
         if self.imageView.point(inside: location, with: nil) {
             if self.scrollView.zoomScale == 1 {
@@ -146,7 +146,7 @@ public class SFFullscreenImageDetailViewController: UIViewController, UIScrollVi
         }
     }
     
-    func panGestureCallback(_ sender: UIPanGestureRecognizer) {
+    @objc func panGestureCallback(_ sender: UIPanGestureRecognizer) {
         if self.scrollView.zoomScale != 1 {
             return
         }
@@ -245,7 +245,7 @@ public class SFFullscreenImageDetailViewController: UIViewController, UIScrollVi
         
     }
     
-    func closeTapped(_ sender: UIButton) {
+    @objc func closeTapped(_ sender: UIButton) {
         let originalCenter = CGPoint(x: self.originFrame.midX - self.scrollView.frame.origin.x, y: self.originFrame.midY - self.scrollView.frame.origin.y)
         
         UIView.animate(withDuration: 0.15, delay: 0, options: .curveEaseOut, animations: {
